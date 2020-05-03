@@ -1,0 +1,47 @@
+{% extends "_base.html" %}
+{% block content %}
+<h1>{{ date }}, a {{ date.strftime('%A') }}</h1>
+
+<ul>
+    <li>
+        {{ jumplink('today', today = True) | safe }}
+    </li>
+    <li>
+        {{ jumplink('<', days = -1) | safe }}
+        day
+        {{ jumplink('>', days = 1) | safe }}
+    </li>
+    <li>
+        {{ jumplink('<', weeks = -1) | safe }}
+        week
+        {{ jumplink('>', weeks = 1) | safe }}
+    </li>
+    <li>
+        {{ jumplink('<', months = -1) | safe }}
+        month
+        {{ jumplink('>', months = 1) | safe }}
+    </li>
+    <li>
+        {{ jumplink('<', years = -1) | safe }}
+        year
+        {{ jumplink('>', years = 1) | safe }}
+    </li>
+</ul>
+
+{% if categories %}
+    {% for category in categories | sort %}
+    <h2>{{ category }}</h2> 
+
+    <ul>
+        {% for entry in entries[category] %}
+        <li>
+            {{ entry }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+{% else %}
+    <h2>No entries today (it wasn't always so)</h2>
+{% endif %}
+
+{% endblock %}
