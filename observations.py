@@ -2,6 +2,7 @@
 
 import datetime
 import dateutil.relativedelta
+import humanize
 import flask
 import os
 import random
@@ -11,10 +12,24 @@ app = flask.Flask(__name__)
 
 EPOCH = datetime.date(2012, 11, 16)
 
+def random_date():
+    total_days = (datetime.date.today() - EPOCH).days
+    offset = dateutil.relativedelta.relativedelta(
+        days = random.randint(0, total_days)
+    )
+    return EPOCH + offset
+
+
 @app.route('/')
+@app.route('/today')
 def hello_world():
-    today = datetime.date.today()
-    return flask.redirect(today.strftime('/%Y/%m/%d'))
+    date = datetime.date.today()
+    return get_date(date.year, date.month, date.day)
+
+@app.route('/random')
+def get_random():
+    date = random_date()
+    return get_date(date.year, date.month, date.day)
 
 @app.route('/<int:year>/<int:month>/<int:day>')
 def get_date(year, month, day):
@@ -26,13 +41,7 @@ def get_date(year, month, day):
         if kwargs.get('today'):
             new_date = datetime.date.today()
         elif kwargs.get('random'):
-            total_days = (datetime.date.today() - EPOCH).days
-            offset = dateutil.relativedelta.relativedelta(
-                days = random.randint(0, total_days)
-            )
-
-            print(total_days, offset)
-            new_date = EPOCH + offset
+            new_date = random_date()
 
         else:
             new_date = date + dateutil.relativedelta.relativedelta(**kwargs)
@@ -45,6 +54,7 @@ def get_date(year, month, day):
     return flask.render_template(
         'daily.html',
         date = date,
+        offset = humanize.naturaldelta(datetime.date.today() - date),
         categories = categories,
         entries = observations,
         jumplink = jumplink
@@ -53,15 +63,19 @@ def get_date(year, month, day):
 def parse_observations(data):
     category = None
     entries = {}
+    first_line = True
+    previous_blank = False
 
     if not data:
         return entries
 
     for line in data.split('\n'):
-        line = line.strip()
-        if not line: continue
+        line = line.rstrip()
+        if not line:
+            previous_blank = True
+            continue
 
-        if line.endswith(':') and not line.startswith('-'):
+        if line.endswith(':') and not line.startswith('-') and (previous_blank or first_line):
             category = line
             if not category in entries:
                 entries[category] = []
@@ -69,7 +83,9 @@ def parse_observations(data):
 
         elif line.startswith('-'):
             line = line.lstrip('-').strip()
-            if not line: continue
+            if not line:
+                previous_blank = False
+                continue
 
             entries[category].append([line])
 
@@ -79,6 +95,9 @@ def parse_observations(data):
             else:
                 entries[category].append([line])
 
+        previous_blank = False
+        first_line = False
+
     for category in list(entries.keys()):
         if not entries[category]:
             del entries[category]
@@ -87,6 +106,9 @@ def parse_observations(data):
             del entries[category]
 
         elif 'memorable' in category.lower():
+            del entries[category]
+
+        elif 'interesting people' in category.lower():
             del entries[category]
 
         elif 'things i learned' in category.lower():
