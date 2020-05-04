@@ -2,9 +2,12 @@
 {% block content %}
 <h1>{{ date }}, a {{ date.strftime('%A') }}</h1>
 
-<ul>
+<ul class="button-list">
     <li>
         {{ jumplink('today', today = True) | safe }}
+    </li>
+    <li>
+        {{ jumplink('random', random = True) | safe }}
     </li>
     <li>
         {{ jumplink('<', days = -1) | safe }}
@@ -32,10 +35,12 @@
     {% for category in categories | sort %}
     <h2>{{ category }}</h2> 
 
-    <ul>
-        {% for entry in entries[category] %}
+    <ul class="entry-list">
+        {% for entrylist in entries[category] %}
         <li>
-            {{ entry }}
+            {% for entry in entrylist %}
+            {{ entry }} <br />
+            {% endfor %}
         </li>
         {% endfor %}
     </ul>

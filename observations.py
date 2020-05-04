@@ -4,9 +4,12 @@ import datetime
 import dateutil.relativedelta
 import flask
 import os
+import random
 import tarfile
 
 app = flask.Flask(__name__)
+
+EPOCH = datetime.date(2012, 11, 16)
 
 @app.route('/')
 def hello_world():
@@ -22,10 +25,19 @@ def get_date(year, month, day):
     def jumplink(text, **kwargs):
         if kwargs.get('today'):
             new_date = datetime.date.today()
+        elif kwargs.get('random'):
+            total_days = (datetime.date.today() - EPOCH).days
+            offset = dateutil.relativedelta.relativedelta(
+                days = random.randint(0, total_days)
+            )
+
+            print(total_days, offset)
+            new_date = EPOCH + offset
+
         else:
             new_date = date + dateutil.relativedelta.relativedelta(**kwargs)
 
-        return '<a href="{link}">{text}</a>'.format(
+        return '<a class="button" href="{link}">{text}</a>'.format(
             link = new_date.strftime('/%Y/%m/%d'),
             text = text
         )
@@ -49,7 +61,7 @@ def parse_observations(data):
         line = line.strip()
         if not line: continue
 
-        if line.endswith(':'):
+        if line.endswith(':') and not line.startswith('-'):
             category = line
             if not category in entries:
                 entries[category] = []
@@ -59,19 +71,19 @@ def parse_observations(data):
             line = line.lstrip('-').strip()
             if not line: continue
 
-            entries[category].append(line)
+            entries[category].append([line])
 
         else:
             if entries[category]:
-                entries[category][-1] += '\n' + line
+                entries[category][-1].append(line)
             else:
-                entries[category].append(line)
+                entries[category].append([line])
 
     for category in list(entries.keys()):
         if not entries[category]:
             del entries[category]
 
-        elif len(entries[category]) == 1 and 'backfill' in entries[category][0].lower():
+        elif len(entries[category]) == 1 and 'backfill' in entries[category][0][0].lower():
             del entries[category]
 
         elif 'memorable' in category.lower():

@@ -1,0 +1,25 @@
+.button {
+    background-color: lightblue;
+    border: none;
+    color: white;
+    padding: 4px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 20px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.button:hover {
+    background-color: lightgreen;
+}
+
+.button-list li {
+    display: inline-block;
+}
+
+.entry-list li {
+    margin: 1em 0;
+}
