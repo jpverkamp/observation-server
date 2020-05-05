@@ -1,34 +1,19 @@
 {% extends "_base.html" %}
 {% block content %}
-<h1>{{ date }}, a {{ date.strftime('%A') }} {{ offset }} ago</h1>
+<h1>{{ date }}</h1>
+<p>{{ date.strftime('%A') }}; {{ offset }} ago</p>
 
 <ul class="button-list">
-    <li>
-        {{ jumplink('today', today = True) | safe }}
-    </li>
-    <li>
-        {{ jumplink('random', random = True) | safe }}
-    </li>
-    <li>
-        {{ jumplink('<', days = -1) | safe }}
-        day
-        {{ jumplink('>', days = 1) | safe }}
-    </li>
-    <li>
-        {{ jumplink('<', weeks = -1) | safe }}
-        week
-        {{ jumplink('>', weeks = 1) | safe }}
-    </li>
-    <li>
-        {{ jumplink('<', months = -1) | safe }}
-        month
-        {{ jumplink('>', months = 1) | safe }}
-    </li>
-    <li>
-        {{ jumplink('<', years = -1) | safe }}
-        year
-        {{ jumplink('>', years = 1) | safe }}
-    </li>
+    <li>{{ jumplink('today', today = True) | safe }}</li>
+    <li>{{ jumplink('random', random = True) | safe }}</li>
+    <li>{{ jumplink('yesterday', days = -1) | safe }}</li>
+    <li>{{ jumplink('tomorrow', days = 1) | safe }}</li>
+    <li>{{ jumplink('last week', weeks = -1) | safe }}</li>
+    <li>{{ jumplink('next week', weeks = -1) | safe }}</li>
+    <li>{{ jumplink('last month', months = -1) | safe }}</li>
+    <li>{{ jumplink('next month', months = 1) | safe }}</li>
+    <li>{{ jumplink('last year', years = -1) | safe }}</li>
+    <li>{{ jumplink('next year', years = 1) | safe }}</li>
 </ul>
 
 {% if categories %}
