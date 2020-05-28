@@ -2,15 +2,25 @@
 
 import datetime
 import dateutil.relativedelta
+import hashlib
 import humanize
 import flask
 import os
 import random
+import sys
 import tarfile
+import yaml
 
 app = flask.Flask(__name__)
+app.jinja_env.globals['hash'] = lambda el : hashlib.md5(str(el).encode()).hexdigest()
 
 EPOCH = datetime.date(2012, 11, 16)
+FAVORITES_FILE = os.path.join('data', 'favorites.yaml')
+FAVORITES = {}
+
+if os.path.exists(FAVORITES_FILE):
+    with open(FAVORITES_FILE) as fin:
+        FAVORITES = yaml.load(fin) or {}
 
 def random_date():
     total_days = (datetime.date.today() - EPOCH).days
@@ -18,7 +28,6 @@ def random_date():
         days = random.randint(0, total_days)
     )
     return EPOCH + offset
-
 
 @app.route('/')
 @app.route('/today')
@@ -31,10 +40,39 @@ def get_random():
     date = random_date()
     return get_date(date.year, date.month, date.day)
 
+@app.route('/favorites', methods = ['GET', 'POST'])
+def favorite():
+    global FAVORITES
+
+    if flask.request.method == 'GET':
+        return flask.render_template('favorites.html', favorites = FAVORITES)
+
+    elif flask.request.method == 'POST':
+        params = flask.request.get_json()
+        date = params.get('date')
+        hash = params.get('hash')
+        text = params.get('text')
+
+        if FAVORITES.get(date, {}).get(hash):
+            del FAVORITES[date][hash]
+
+            if not FAVORITES[date]:
+                del FAVORITES[date]
+        else:
+            if not date in FAVORITES:
+                FAVORITES[date] = {}
+
+            FAVORITES[date][hash] = text
+
+        with open(FAVORITES_FILE, 'w') as fout:
+            yaml.dump(FAVORITES, fout, default_flow_style = False)
+
+        return 'ok'
+
 @app.route('/<int:year>/<int:month>/<int:day>')
 def get_date(year, month, day):
     date = datetime.date(year, month, day)
-    observations = parse_observations(get_observations(date))
+    observations = parse_observations(get_observations(date), include_all = 'all' in flask.request.args)
     categories = set(observations.keys())
 
     def jumplink(text, **kwargs):
@@ -42,7 +80,6 @@ def get_date(year, month, day):
             new_date = datetime.date.today()
         elif kwargs.get('random'):
             new_date = random_date()
-
         else:
             new_date = date + dateutil.relativedelta.relativedelta(**kwargs)
 
@@ -51,16 +88,20 @@ def get_date(year, month, day):
             text = text
         )
 
+    def is_favorite(hash):
+        return bool(FAVORITES.get(str(date), {}).get(hash))
+
     return flask.render_template(
         'daily.html',
         date = date,
         offset = humanize.naturaldelta(datetime.date.today() - date),
         categories = categories,
         entries = observations,
-        jumplink = jumplink
+        jumplink = jumplink,
+        is_favorite = is_favorite
     )
 
-def parse_observations(data):
+def parse_observations(data, include_all = False):
     category = None
     entries = {}
     first_line = True
@@ -105,16 +146,16 @@ def parse_observations(data):
         elif len(entries[category]) == 1 and 'backfill' in entries[category][0][0].lower():
             del entries[category]
 
-        elif 'memorable' in category.lower():
+        elif 'memorable' in category.lower() and not include_all:
             del entries[category]
 
-        elif 'interesting people' in category.lower():
+        elif 'interesting people' in category.lower() and not include_all:
             del entries[category]
 
-        elif 'things i learned' in category.lower():
+        elif 'things i learned' in category.lower() and not include_all:
             del entries[category]
 
-        elif 'exercise' in category.lower():
+        elif 'exercise' in category.lower() and not include_all:
             del entries[category]
 
     return entries
@@ -145,8 +186,8 @@ def get_observations(date):
 
                 # We found a nested tarball with the month
                 elif ymstr in ti.name and ti.name.endswith('tgz'):
-                    logging.warning('Deal with nested tarballs')
+                    print('Deal with nested tarballs')
                     raise NotImplemented
 
 if __name__ == '__main__':
-    app.run(host = '0.0.0.0', debug = False)
+    app.run(host = '0.0.0.0', debug = '--debug' in sys.argv)

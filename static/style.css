@@ -9,6 +9,7 @@
     border-radius: 0.25em;
 }
 
+
 .button-list {
     padding: 0;
 }
@@ -19,4 +20,22 @@
 
 .entry-list li {
     margin: 1em 0;
+}
+
+.entry a {
+    display: none;
+}
+
+.entry:hover a { 
+    display: inline-block;
+}
+
+a[data-favorite=False] {
+    text-decoration: none;
+    color: black;
+}
+
+a[data-favorite=True] { 
+    text-decoration: none;
+    color: red;
 }

@@ -1,0 +1,27 @@
+{% extends "_base.html" %}
+{% block content %}
+<h1>Favorites</h1>
+
+<ul class="button-list">
+    <li><a class="button" href="/">today</a></li>
+</ul>
+
+{% if favorites %}
+    {% for date in favorites | sort %}
+    <h2><a href="/{{ date.replace('-', '/') }}">{{ date }}</a></h2> 
+
+    <ul class="entry-list">
+        {% for hash in favorites[date] %}
+        <li class="entry">
+            <div class="content">
+            {{ favorites[date][hash] }} <br />
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+{% else %}
+    <h2>No favorites (go find some!)</h2>
+{% endif %}
+
+{% endblock %}

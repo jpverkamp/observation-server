@@ -14,6 +14,7 @@
     <li>{{ jumplink('next month', months = 1) | safe }}</li>
     <li>{{ jumplink('last year', years = -1) | safe }}</li>
     <li>{{ jumplink('next year', years = 1) | safe }}</li>
+    <li><a class="button" href="/favorites">favorites</a></li>
 </ul>
 
 {% if categories %}
@@ -22,10 +23,13 @@
 
     <ul class="entry-list">
         {% for entrylist in entries[category] %}
-        <li>
+        <li class="entry">
+            <div class="content">
             {% for entry in entrylist %}
             {{ entry }} <br />
             {% endfor %}
+            </div>
+            <a href="#" data-favorite="{{ is_favorite(hash(entrylist)) }}" onclick="favorite(this, '{{ date }}', '{{ hash(entrylist) }}')">❤</a>
         </li>
         {% endfor %}
     </ul>
@@ -33,5 +37,9 @@
 {% else %}
     <h2>No entries today (it wasn't always so)</h2>
 {% endif %}
+
+<ul class="button-list">
+    <li><a class="button" href="?all">all</a></li>
+</ul>
 
 {% endblock %}
