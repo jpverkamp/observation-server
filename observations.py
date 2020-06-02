@@ -102,8 +102,8 @@ def get_date(year, month, day):
     )
 
 def parse_observations(data, include_all = False):
-    category = None
-    entries = {}
+    category = 'none'
+    entries = {'none': []}
     first_line = True
     previous_blank = False
 
