@@ -72,8 +72,17 @@ def favorite():
 @app.route('/<int:year>/<int:month>/<int:day>')
 def get_date(year, month, day):
     date = datetime.date(year, month, day)
-    observations = parse_observations(get_observations(date), include_all = 'all' in flask.request.args)
-    categories = set(observations.keys())
+    data = {}
+
+    while date > EPOCH:
+        observations = parse_observations(get_observations(date), include_all = 'all' in flask.request.args)
+        categories = set(observations.keys())
+        data[date] = {'observations': observations, 'categories': categories}
+    
+        if 'history' in flask.request.args:
+            date = date + dateutil.relativedelta.relativedelta(years = -1)
+        else:
+            break
 
     def jumplink(text, **kwargs):
         if kwargs.get('today'):
@@ -94,9 +103,8 @@ def get_date(year, month, day):
     return flask.render_template(
         'daily.html',
         date = date,
-        offset = humanize.naturaldelta(datetime.date.today() - date),
-        categories = categories,
-        entries = observations,
+        offset = lambda date : humanize.naturaldelta(datetime.date.today() - date),
+        data = data,
         jumplink = jumplink,
         is_favorite = is_favorite
     )

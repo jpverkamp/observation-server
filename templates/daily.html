@@ -1,45 +1,59 @@
 {% extends "_base.html" %}
 {% block content %}
-<h1>{{ date }}</h1>
-<p>{{ date.strftime('%A') }}; {{ offset }} ago</p>
-
-<ul class="button-list">
-    <li>{{ jumplink('today', today = True) | safe }}</li>
-    <li>{{ jumplink('random', random = True) | safe }}</li>
-    <li>{{ jumplink('yesterday', days = -1) | safe }}</li>
-    <li>{{ jumplink('tomorrow', days = 1) | safe }}</li>
-    <li>{{ jumplink('last week', weeks = -1) | safe }}</li>
-    <li>{{ jumplink('next week', weeks = -1) | safe }}</li>
-    <li>{{ jumplink('last month', months = -1) | safe }}</li>
-    <li>{{ jumplink('next month', months = 1) | safe }}</li>
-    <li>{{ jumplink('last year', years = -1) | safe }}</li>
-    <li>{{ jumplink('next year', years = 1) | safe }}</li>
-    <li><a class="button" href="/favorites">favorites</a></li>
-</ul>
-
-{% if categories %}
-    {% for category in categories | sort %}
-    <h2>{{ category }}</h2> 
-
-    <ul class="entry-list">
-        {% for entrylist in entries[category] %}
-        <li class="entry">
-            <div class="content">
-            {% for entry in entrylist %}
-            {{ entry }} <br />
-            {% endfor %}
-            </div>
-            <a href="#" data-favorite="{{ is_favorite(hash(entrylist)) }}" onclick="favorite(this, '{{ date }}', '{{ hash(entrylist) }}')">♡</a>
-        </li>
-        {% endfor %}
-    </ul>
-    {% endfor %}
-{% else %}
-    <h2>No entries today (it wasn't always so)</h2>
-{% endif %}
 
 <ul class="button-list">
     <li><a class="button" href="?all">all</a></li>
+    <li><a class="button" href="?history">history</a></li>
+
+    --
+
+    <li>{{ jumplink('today', today = True) | safe }}</li>
+    <li>{{ jumplink('random', random = True) | safe }}</li>
+{% if 'history' not in request.args %}
+    --
+
+    <li>{{ jumplink('yesterday', days = -1) | safe }}</li>
+    <li>{{ jumplink('tomorrow', days = 1) | safe }}</li>
+
+    --
+
+    <li>{{ jumplink('last year', years = -1) | safe }}</li>
+    <li>{{ jumplink('next year', years = 1) | safe }}</li>
+{% endif %}
+    --
+
+    <li><a class="button" href="/favorites">favorites</a></li>    
 </ul>
+
+{% for key in data %}
+<div class="observationblock">
+    <h1>{{ key }}</h1>
+    <p>{{ key.strftime('%A') }}; {{ offset(key) }} ago</p>
+
+    {% set categories = data[key]['categories'] %}
+    {% set entries = data[key]['observations'] %}
+
+    {% if categories %}
+        {% for category in categories | sort %}
+        <h2>{{ category }}</h2> 
+
+        <ul class="entry-list">
+            {% for entrylist in entries[category] %}
+            <li class="entry">
+                <div class="content">
+                {% for entry in entrylist %}
+                {{ entry }} <br />
+                {% endfor %}
+                </div>
+                <a href="#" data-favorite="{{ is_favorite(hash(entrylist)) }}" onclick="favorite(this, '{{ date }}', '{{ hash(entrylist) }}')">♡</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endfor %}
+    {% else %}
+        <h2>No entries today (it wasn't always so)</h2>
+    {% endif %}
+</div>
+{% endfor %}
 
 {% endblock %}
