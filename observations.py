@@ -20,7 +20,7 @@ FAVORITES = {}
 
 if os.path.exists(FAVORITES_FILE):
     with open(FAVORITES_FILE) as fin:
-        FAVORITES = yaml.load(fin) or {}
+        FAVORITES = yaml.safe_load(fin) or {}
 
 def random_date():
     total_days = (datetime.date.today() - EPOCH).days
@@ -175,8 +175,8 @@ def get_observations(date):
     # File exists directly
     path = os.path.join('data', ymstr, datestr)
     if os.path.exists(path):
-        with open(path, 'r') as fin:
-            return fin.read()
+        with open(path, 'rb') as fin:
+            return fin.read().decode('utf-8', 'replace')
 
     # Check for an archive
     path = os.path.join('data', date.strftime('%Y.tgz'))
