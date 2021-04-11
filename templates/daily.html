@@ -45,7 +45,7 @@
                 {{ entry }} <br />
                 {% endfor %}
                 </div>
-                <a href="#" data-favorite="{{ is_favorite(hash(entrylist)) }}" onclick="favorite(this, '{{ date }}', '{{ hash(entrylist) }}')">♡</a>
+                <a href="#" data-favorite="{{ is_favorite(hash(entrylist)) }}" onclick="favorite(this, '{{ date }}', '{{ hash(entrylist) }}'); return false">♡</a>
             </li>
             {% endfor %}
         </ul>
