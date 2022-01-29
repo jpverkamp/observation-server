@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+import coloredlogs
 import datetime
 import dateutil.relativedelta
 import hashlib
 import humanize
+import logging
 import flask
 import os
 import random
@@ -11,8 +13,11 @@ import sys
 import tarfile
 import yaml
 
+if '--debug' in sys.argv:
+    coloredlogs.install(level=logging.INFO)
+
 app = flask.Flask(__name__)
-app.jinja_env.globals['hash'] = lambda el : hashlib.md5(str(el).encode()).hexdigest()
+app.jinja_env.globals['hash'] = lambda el: hashlib.md5(str(el).encode()).hexdigest()
 
 EPOCH = datetime.date(2012, 11, 16)
 FAVORITES_FILE = os.path.join('data', 'favorites.yaml')
@@ -22,30 +27,37 @@ if os.path.exists(FAVORITES_FILE):
     with open(FAVORITES_FILE) as fin:
         FAVORITES = yaml.safe_load(fin) or {}
 
+
 def random_date():
     total_days = (datetime.date.today() - EPOCH).days
     offset = dateutil.relativedelta.relativedelta(
-        days = random.randint(0, total_days)
+        days=random.randint(0, total_days)
     )
     return EPOCH + offset
 
+
 @app.route('/')
 @app.route('/today')
-def hello_world():
+def today():
+    logging.info(f'today()')
     date = datetime.date.today()
     return get_date(date.year, date.month, date.day)
 
+
 @app.route('/random')
 def get_random():
+    logging.info(f'get_random()')
     date = random_date()
     return get_date(date.year, date.month, date.day)
 
-@app.route('/favorites', methods = ['GET', 'POST'])
+
+@app.route('/favorites', methods=['GET', 'POST'])
 def favorite():
+    logging.info(f'favorite()')
     global FAVORITES
 
     if flask.request.method == 'GET':
-        return flask.render_template('favorites.html', favorites = FAVORITES)
+        return flask.render_template('favorites.html', favorites=FAVORITES)
 
     elif flask.request.method == 'POST':
         params = flask.request.get_json()
@@ -65,22 +77,25 @@ def favorite():
             FAVORITES[date][hash] = text
 
         with open(FAVORITES_FILE, 'w') as fout:
-            yaml.dump(FAVORITES, fout, default_flow_style = False)
+            yaml.dump(FAVORITES, fout, default_flow_style=False)
 
         return 'ok'
 
+
 @app.route('/<int:year>/<int:month>/<int:day>')
 def get_date(year, month, day):
+    logging.info(f'get_date({year=}, {month=}, {day=})')
+
     date = datetime.date(year, month, day)
     data = {}
 
     while date > EPOCH:
-        observations = parse_observations(get_observations(date), include_all = 'all' in flask.request.args)
+        observations = parse_observations(get_observations(date), include_all='all' in flask.request.args)
         categories = set(observations.keys())
         data[date] = {'observations': observations, 'categories': categories}
-    
+
         if 'history' in flask.request.args:
-            date = date + dateutil.relativedelta.relativedelta(years = -1)
+            date = date + dateutil.relativedelta.relativedelta(years=-1)
         else:
             break
 
@@ -93,8 +108,8 @@ def get_date(year, month, day):
             new_date = date + dateutil.relativedelta.relativedelta(**kwargs)
 
         return '<a class="button" href="{link}">{text}</a>'.format(
-            link = new_date.strftime('/%Y/%m/%d'),
-            text = text
+            link=new_date.strftime('/%Y/%m/%d'),
+            text=text
         )
 
     def is_favorite(hash):
@@ -102,14 +117,17 @@ def get_date(year, month, day):
 
     return flask.render_template(
         'daily.html',
-        date = date,
-        offset = lambda date : humanize.naturaldelta(datetime.date.today() - date),
-        data = data,
-        jumplink = jumplink,
-        is_favorite = is_favorite
+        date=date,
+        offset=lambda date: humanize.naturaldelta(datetime.date.today() - date),
+        data=data,
+        jumplink=jumplink,
+        is_favorite=is_favorite
     )
 
-def parse_observations(data, include_all = False):
+
+def parse_observations(data, include_all=False):
+    logging.info(f'parse_observations({data=}, {include_all=})')
+
     category = 'none'
     entries = {'none': []}
     first_line = True
@@ -168,7 +186,10 @@ def parse_observations(data, include_all = False):
 
     return entries
 
+
 def get_observations(date):
+    logging.info(f'get_obserations({date=})')
+
     ymstr = date.strftime('%Y-%m')
     datestr = date.strftime('%Y-%m-%d.txt')
 
@@ -176,19 +197,25 @@ def get_observations(date):
     path = os.path.join('data', ymstr, datestr)
     if os.path.exists(path):
         with open(path, 'rb') as fin:
+            logging.info(f'Loaded local file: {path}')
             return fin.read().decode('utf-8', 'replace')
+    else:
+        logging.info(f'{path} does not exist')
 
     # Check for an archive
     path = os.path.join('data', date.strftime('%Y.tgz'))
     if os.path.exists(path):
+        logging.info(f'Tarball exists: {path}')
+
         with tarfile.open(path, 'r') as tf:
             for ti in tf.getmembers():
                 # Skip mac files
                 if '._' in ti.name:
                     continue
 
-                # We found the date we were looking for 
+                # We found the date we were looking for
                 if ti.name.endswith(datestr):
+                    logging.info(f'Loaded nested file: {ti.name} in {path}')
                     with tf.extractfile(ti) as fin:
                         return fin.read().decode('utf-8', 'replace')
 
@@ -196,6 +223,9 @@ def get_observations(date):
                 elif ymstr in ti.name and ti.name.endswith('tgz'):
                     print('Deal with nested tarballs')
                     raise NotImplemented
+    else:
+        logging.info(f'{path} does not exist')
+
 
 if __name__ == '__main__':
-    app.run(host = '0.0.0.0', debug = '--debug' in sys.argv)
+    app.run(host='0.0.0.0', debug='--debug' in sys.argv)
