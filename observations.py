@@ -128,6 +128,9 @@ def get_date(year, month, day):
 def parse_observations(data, include_all=False):
     logging.info(f'parse_observations({data=}, {include_all=})')
 
+    md_mode = data.strip().startswith('#')
+
+    category_tree = []
     category = 'none'
     entries = {'none': []}
     first_line = True
@@ -142,7 +145,15 @@ def parse_observations(data, include_all=False):
             previous_blank = True
             continue
 
-        if line.endswith(':') and not line.startswith('-') and (previous_blank or first_line):
+        if md_mode and line.startswith('#'):
+            depth = len(line) - len(line.lstrip('#')) - 1
+            category_tree = category_tree[:depth] + [line.lstrip('#').lstrip()]
+            category = ' -- '.join(category_tree)
+
+            if not category in entries:
+                entries[category] = []
+
+        elif not md_mode and line.endswith(':') and not line.startswith('-') and (previous_blank or first_line):
             category = line
             if not category in entries:
                 entries[category] = []
@@ -191,40 +202,44 @@ def get_observations(date):
     logging.info(f'get_obserations({date=})')
 
     ymstr = date.strftime('%Y-%m')
-    datestr = date.strftime('%Y-%m-%d.txt')
+    datestrs = [
+        date.strftime('%Y-%m-%d.txt'),
+        date.strftime('%Y-%m-%d.md')
+    ]
+    
+    for datestr in datestrs:
+        # File exists directly as txt
+        path = os.path.join('data', ymstr, datestr)
+        if os.path.exists(path):
+            with open(path, 'rb') as fin:
+                logging.info(f'Loaded local file: {path}')
+                return fin.read().decode('utf-8', 'replace')
+        else:
+            logging.info(f'{path} does not exist')
 
-    # File exists directly
-    path = os.path.join('data', ymstr, datestr)
-    if os.path.exists(path):
-        with open(path, 'rb') as fin:
-            logging.info(f'Loaded local file: {path}')
-            return fin.read().decode('utf-8', 'replace')
-    else:
-        logging.info(f'{path} does not exist')
+        # Check for an archive
+        path = os.path.join('data', date.strftime('%Y.tgz'))
+        if os.path.exists(path):
+            logging.info(f'Tarball exists: {path}')
 
-    # Check for an archive
-    path = os.path.join('data', date.strftime('%Y.tgz'))
-    if os.path.exists(path):
-        logging.info(f'Tarball exists: {path}')
+            with tarfile.open(path, 'r') as tf:
+                for ti in tf.getmembers():
+                    # Skip mac files
+                    if '._' in ti.name:
+                        continue
 
-        with tarfile.open(path, 'r') as tf:
-            for ti in tf.getmembers():
-                # Skip mac files
-                if '._' in ti.name:
-                    continue
+                    # We found the date we were looking for
+                    if ti.name.endswith(datestr):
+                        logging.info(f'Loaded nested file: {ti.name} in {path}')
+                        with tf.extractfile(ti) as fin:
+                            return fin.read().decode('utf-8', 'replace')
 
-                # We found the date we were looking for
-                if ti.name.endswith(datestr):
-                    logging.info(f'Loaded nested file: {ti.name} in {path}')
-                    with tf.extractfile(ti) as fin:
-                        return fin.read().decode('utf-8', 'replace')
-
-                # We found a nested tarball with the month
-                elif ymstr in ti.name and ti.name.endswith('tgz'):
-                    print('Deal with nested tarballs')
-                    raise NotImplemented
-    else:
-        logging.info(f'{path} does not exist')
+                    # We found a nested tarball with the month
+                    elif ymstr in ti.name and ti.name.endswith('tgz'):
+                        print('Deal with nested tarballs')
+                        raise NotImplemented
+        else:
+            logging.info(f'{path} does not exist')
 
 
 if __name__ == '__main__':
