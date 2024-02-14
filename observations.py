@@ -128,6 +128,7 @@ def get_date(year, month, day):
 def parse_observations(data, include_all=False):
     logging.info(f'parse_observations({data=}, {include_all=})')
 
+    data = data or ''
     md_mode = data.strip().startswith('#')
 
     category_tree = []

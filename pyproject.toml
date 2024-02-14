@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "observation-server"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "observation_server"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+coloredlogs = "^15.0.1"
+humanize = "^4.9.0"
+flask = "^3.0.2"
+python-dateutil = "^2.8.2"
+pyyaml = "^6.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
