@@ -10,7 +10,7 @@ packages = [{include = "observation_server"}]
 python = "^3.10"
 coloredlogs = "^15.0.1"
 humanize = "^4.9.0"
-flask = "^3.0.2"
+flask = "^3.1.1"
 python-dateutil = "^2.8.2"
 pyyaml = "^6.0.1"
 
