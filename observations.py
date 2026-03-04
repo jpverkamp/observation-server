@@ -2,6 +2,7 @@
 
 import coloredlogs
 import datetime
+from zoneinfo import ZoneInfo
 import dateutil.relativedelta
 import hashlib
 import humanize
@@ -20,6 +21,21 @@ if '--debug' in sys.argv:
 app = flask.Flask(__name__)
 app.jinja_env.globals['hash'] = lambda el: hashlib.md5(str(el).encode()).hexdigest()
 
+# Timezone configuration: set TZ environment variable to your timezone (e.g., 'America/Denver')
+# Defaults to UTC if not set. Full list: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+TIMEZONE_STR = os.environ.get("TZ", "UTC")
+try:
+    TIMEZONE = ZoneInfo(TIMEZONE_STR)
+except Exception as e:
+    logging.warning(f"Invalid timezone {TIMEZONE_STR}: {e}; falling back to UTC")
+    TIMEZONE = ZoneInfo("UTC")
+
+
+def get_today():
+    """Get today's date in the configured timezone."""
+    return datetime.datetime.now(tz=TIMEZONE).date()
+
+
 EPOCH = datetime.date(2012, 11, 16)
 FAVORITES_FILE = os.path.join('data', 'favorites.yaml')
 FAVORITES = {}
@@ -30,7 +46,7 @@ if os.path.exists(FAVORITES_FILE):
 
 
 def random_date():
-    total_days = (datetime.date.today() - EPOCH).days
+    total_days = (get_today() - EPOCH).days
     offset = dateutil.relativedelta.relativedelta(
         days=random.randint(0, total_days)
     )
@@ -41,7 +57,7 @@ def random_date():
 @app.route("/today", methods=["GET", "POST"])
 def today():
     logging.info(f'today()')
-    date = datetime.date.today()
+    date = get_today()
 
     if flask.request.method == "POST":
         return get_date(date.year, date.month, date.day)
@@ -132,7 +148,7 @@ def get_date(year, month, day):
 
     def jumplink(text, **kwargs):
         if kwargs.get('today'):
-            new_date = datetime.date.today()
+            new_date = get_today()
         elif kwargs.get('random'):
             new_date = random_date()
         else:
@@ -147,12 +163,12 @@ def get_date(year, month, day):
         return bool(FAVORITES.get(str(date), {}).get(hash))
 
     return flask.render_template(
-        'daily.html',
+        "daily.html",
         date=date,
-        offset=lambda date: humanize.naturaldelta(datetime.date.today() - date),
+        offset=lambda date: humanize.naturaldelta(get_today() - date),
         data=data,
         jumplink=jumplink,
-        is_favorite=is_favorite
+        is_favorite=is_favorite,
     )
 
 
