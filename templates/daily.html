@@ -37,6 +37,32 @@
         {% for category in categories | sort %}
         <h2>{{ category }}</h2> 
 
+        {% if 'todo' in category.lower() %}
+        <ul class="entry-list checklist">
+            {% for entrylist in entries[category] %}
+            {% set first_line = entrylist[0] if entrylist else '' %}
+            {% set is_checked = first_line.startswith('[x]') or first_line.startswith('[X]') %}
+            {% set todo_text = first_line.lstrip('[]xX ').lstrip() %}
+            <li class="entry todo-item{% if is_checked %} completed{% endif %}">
+                <input
+                    type="checkbox"
+                    class="todo-checkbox"
+                    data-date="{{ key.strftime('%Y-%m-%d') }}"
+                    data-todo-index="{{ loop.index0 }}"
+                    onchange="toggleTodo(this)"
+                    {% if is_checked %} checked{% endif %}
+                />
+                <div class="content">
+                    {{ todo_text }}
+                    {% for entry in entrylist[1:] %}
+                    <br />{{ entry }}
+                    {% endfor %}
+                </div>
+                <a href="#" data-favorite="{{ is_favorite(hash(entrylist)) }}" onclick="favorite(this, '{{ date }}', '{{ hash(entrylist) }}'); return false">♡</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
         <ul class="entry-list">
             {% for entrylist in entries[category] %}
             <li class="entry">
@@ -49,6 +75,7 @@
             </li>
             {% endfor %}
         </ul>
+        {% endif %}
         {% endfor %}
     {% else %}
         <h2>No entries today (it wasn't always so)</h2>

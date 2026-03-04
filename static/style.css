@@ -54,3 +54,26 @@ a[data-favorite=True]:after {
     padding: 1em;
     margin: 1em;
 }
+
+.checklist {
+    list-style: none;
+    padding: 0;
+}
+
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin: 0.75em 0;
+}
+
+.todo-item.completed .content {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.todo-checkbox {
+    margin-top: 0.25em;
+    cursor: pointer;
+    flex-shrink: 0;
+}

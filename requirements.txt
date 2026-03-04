@@ -1,5 +1,0 @@
-coloredlogs
-humanize
-flask
-python-dateutil
-pyyaml
