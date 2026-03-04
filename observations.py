@@ -367,7 +367,7 @@ def update_date(year, month, day, update):
             return f"## {matched_cats[0]}", text
 
         text_lower = text.lower()
-        if re.match(r"^\[\s*\]", text) or "todo" in text_lower:
+        if re.match(r"^\[\s*[xX ]?\s*\]", text) or "todo" in text_lower:
             if not re.match(r"^\[\s*[xX ]\s*\]", text):
                 text = f"[ ] {text}"
             return "# TODOs", text
