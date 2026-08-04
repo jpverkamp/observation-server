@@ -406,13 +406,18 @@ def update_date(year, month, day, update):
             if izzy_match:
                 child_map["z"] = izzy_match
 
-        explicit = re.search(r"(^|\s)([aezio]):", text, re.IGNORECASE)
-        if explicit:
-            initial = explicit.group(2).lower()
-            if initial in child_map:
-                text = re.sub(r"(^|\s)[aezio]:", " ", text, flags=re.IGNORECASE)
-                text = re.sub(r"\s+", " ", text).strip()
-                return f"## {child_map[initial]}", text
+        explicit_speakers = [
+            match.lower() for match in re.findall(r"(?mi)^\s*([aezio]):\s*", text)
+        ]
+        if explicit_speakers:
+            known_speakers = [
+                speaker for speaker in explicit_speakers if speaker in child_map
+            ]
+            if known_speakers:
+                if len(set(known_speakers)) > 1:
+                    return "# Stories about the children", text
+
+                return f"## {child_map[known_speakers[0]]}", text
 
         matched_children = [name for name in child_names if mentions_name(text, name)]
         matched_cats = [name for name in cat_names if mentions_name(text, name)]
