@@ -36,6 +36,54 @@ def get_today():
     return datetime.datetime.now(tz=TIMEZONE).date()
 
 
+def sentence_case(text):
+    text = (text or "").strip()
+    if not text:
+        return text
+
+    for index, ch in enumerate(text):
+        if ch.isalpha():
+            return text[:index] + ch.upper() + text[index + 1 :]
+
+    return text
+
+
+def parse_prefixed_observation_date(raw_text, default_date):
+    text = (raw_text or "").strip()
+    if not text:
+        return default_date, text
+
+    first_word = text.split(None, 1)[0]
+    remainder = text[len(first_word) :].lstrip()
+
+    if first_word.lower() == "yesterday":
+        target_date = default_date - datetime.timedelta(days=1)
+        return target_date, sentence_case(remainder)
+
+    target_date = None
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", first_word):
+        try:
+            target_date = datetime.datetime.strptime(first_word, "%Y-%m-%d").date()
+        except ValueError:
+            target_date = None
+    elif re.match(r"^\d{1,2}/\d{1,2}/\d{4}$", first_word):
+        try:
+            target_date = datetime.datetime.strptime(first_word, "%m/%d/%Y").date()
+        except ValueError:
+            target_date = None
+    elif re.match(r"^\d{1,2}/\d{1,2}$", first_word):
+        try:
+            month, day = map(int, first_word.split("/"))
+            target_date = datetime.date(default_date.year, month, day)
+        except ValueError:
+            target_date = None
+
+    if target_date is not None:
+        return target_date, sentence_case(remainder)
+
+    return default_date, text
+
+
 EPOCH = datetime.date(2012, 11, 16)
 FAVORITES_FILE = os.path.join('data', 'favorites.yaml')
 FAVORITES = {}
@@ -106,6 +154,7 @@ def favorite():
 @app.route("/<int:year>/<int:month>/<int:day>", methods=["GET", "POST"])
 def get_date(year, month, day):
     logging.info(f'get_date({year=}, {month=}, {day=})')
+    requested_date = datetime.date(year, month, day)
 
     if flask.request.method == "POST":
         params = flask.request.get_json(silent=True)
@@ -120,20 +169,32 @@ def get_date(year, month, day):
                 "todo_index": params.get("todo_index"),
                 "checked": params.get("checked"),
             }
+            save_date = requested_date
         elif "text" in params:
-            update = {"text": params.get("text")}
+            save_date, parsed_text = parse_prefixed_observation_date(
+                params.get("text"), requested_date
+            )
+            update = {"text": parsed_text}
         elif len(params) == 1:
-            update = {"text": next(iter(params.values()))}
+            save_date, parsed_text = parse_prefixed_observation_date(
+                next(iter(params.values())), requested_date
+            )
+            update = {"text": parsed_text}
         else:
             return (
                 flask.jsonify({"error": "Expected a text update or todo_index update"}),
                 400,
             )
 
-        result, status = update_date(year, month, day, update)
+        result, status = update_date(
+            save_date.year,
+            save_date.month,
+            save_date.day,
+            update,
+        )
         return flask.jsonify(result), status
 
-    date = datetime.date(year, month, day)
+    date = requested_date
     data = {}
 
     while date > EPOCH:
@@ -444,6 +505,7 @@ def update_date(year, month, day, update):
             {
                 "status": "ok",
                 "date": str(date),
+                "saved_to": str(date),
                 "path": path,
                 "todo_index": todo_index,
                 "checked": checked,
@@ -502,6 +564,7 @@ def update_date(year, month, day, update):
     return {
         "status": "ok",
         "date": str(date),
+        "saved_to": str(date),
         "path": path,
         "section": heading,
         "item": f"- {cleaned}",
